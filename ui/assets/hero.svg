@@ -1,0 +1,13 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 200'>
+  <rect width='600' height='200' fill='#F8FFF5'/>
+  <g transform='translate(30,40)'>
+    <rect x='0' y='0' width='220' height='120' rx='10' fill='#47C988' opacity='0.14'/>
+    <text x='10' y='35' font-family='sans-serif' font-size='22' fill='#2E8B57'>Crop Insights</text>
+    <text x='10' y='65' font-family='sans-serif' font-size='14' fill='#555'>Yield forecasts, weather and market snapshot</text>
+  </g>
+  <g transform='translate(300,40)'>
+    <rect x='0' y='0' width='220' height='120' rx='10' fill='#FFD54F' opacity='0.14'/>
+    <text x='10' y='35' font-family='sans-serif' font-size='22' fill='#A06C00'>Weather & Alerts</text>
+    <text x='10' y='65' font-family='sans-serif' font-size='14' fill='#555'>Advisories for farmers</text>
+  </g>
+</svg>

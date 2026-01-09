@@ -1,66 +1,47 @@
 import pandas as pd
 
-def build_time_series(df, state, crop):
 
-    # Normalize column names
+def _ensure_lower_cols(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a copy of df with column names normalized to lowercase."""
+    df = df.copy()
     df.columns = df.columns.str.strip().str.lower()
+    return df
 
-    # ---- Auto-detect year column ----
-    year_col = None
-    for col in df.columns:
-        if "year" in col:
-            year_col = col
-            break
 
-    if year_col is None:
-        raise Exception("❌ No YEAR column found in dataset!")
+def build_time_series(df, state, crop):
+    df = _ensure_lower_cols(df)
 
-    # ---- Auto-detect yield column (prefer 'yield', fallback to 'production') ----
-    yield_col = None
-    for col in df.columns:
-        if "yield" in col:
-            yield_col = col
-            break
+    # Required columns
+    required = {"state_name", "crop", "year"}
+    if not required.issubset(set(df.columns)):
+        missing = required - set(df.columns)
+        raise Exception(f"Missing required columns: {', '.join(sorted(missing))}")
 
-    prod_col = None
-    for col in df.columns:
-        if col in ("production", "production_in_tons", "production_tons"):
-            prod_col = col
-            break
+    # Normalize string columns
+    df["state_name"] = df["state_name"].astype(str).str.strip().str.lower()
+    df["crop"] = df["crop"].astype(str).str.strip().str.lower()
 
-    if yield_col is None and prod_col is None:
-        raise Exception("❌ No YIELD or PRODUCTION column found in dataset!")
+    state = state.strip().lower()
+    crop = crop.strip().lower()
 
-    # ---- Required columns ----
-    # ensure state and crop columns exist
-    if not any('state' in c for c in df.columns):
-        raise Exception("❌ Required column 'state_name' or 'state' missing")
-    if not any('crop' in c for c in df.columns):
-        raise Exception("❌ Required column 'crop' missing")
+    # Choose a production column (prefer 'yield', then 'production_in_tons', then 'yield_ton_per_hec')
+    prod_candidates = ["yield", "production_in_tons", "yield_ton_per_hec"]
+    prod_col = next((c for c in prod_candidates if c in df.columns), None)
+    if prod_col is None:
+        raise Exception("No production column found (expected one of: yield, production_in_tons, yield_ton_per_hec)")
 
-    # ---- Filter ----
-    filtered_df = df[
-        (df[[c for c in df.columns if 'state' in c][0]].str.lower() == state.lower()) &
-        (df[[c for c in df.columns if 'crop' in c][0]].str.lower() == crop.lower())
-    ]
+    filtered = df[(df["state_name"] == state) & (df["crop"] == crop)]
 
-    if filtered_df.empty:
-        raise Exception("❌ No data for selected State & Crop")
-
-    # ---- Build time series: prefer yield mean, otherwise use production sum ----
-    if yield_col is not None:
-        ts = (
-            filtered_df
-            .groupby(year_col)[yield_col]
-            .mean()
-            .sort_index()
-        )
-    else:
-        ts = (
-            filtered_df
-            .groupby(year_col)[prod_col]
-            .sum()
-            .sort_index()
+    if filtered.empty:
+        raise Exception(
+            f"No data found for state='{state}' and crop='{crop}'. Rows in dataset: {len(df)}"
         )
 
-    return ts
+    # Sort by year and reset index
+    filtered = filtered.sort_values(by="year").reset_index(drop=True)
+    filtered["time_index"] = pd.RangeIndex(start=1, stop=len(filtered) + 1)
+
+    series = filtered[prod_col].astype(float)
+    series.index = filtered["time_index"]
+
+    return series

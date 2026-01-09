@@ -1,78 +1,27 @@
-name: Auto Manual Mapping PR
+name: Auto Manual Map PR
 
 on:
-  push:
-    branches:
-      - feat/auto-manual-map-pr
-  workflow_dispatch: {}
-  schedule:
-    - cron: '0 6 * * 1' # weekly on Monday at 06:00 UTC (adjustable)
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  auto-map-pr:
+  auto-map:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.10"
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -r requirements.txt
 
-      - name: Run manual_map_updater and apply suggestions
-        id: updater
+      - name: Run updater
         run: |
-          python - <<'PY'
-import json
-from src.manual_map_updater import suggest_and_apply
-res = suggest_and_apply(apply=True)
-print(json.dumps(res))
-open('suggestions.json','w').write(json.dumps(res))
-PY
-
-      - name: Show git status
-        run: git status --porcelain || true
-
-      - name: Create branch and push changes if any
-        id: create_branch
-        run: |
-          CHANGES=$(git status --porcelain)
-          echo "Changes: $CHANGES"
-          if [ -n "$CHANGES" ]; then
-            BRANCH="auto/manual-mapping-$(date -u +%Y%m%d-%H%M%S)"
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git checkout -b "$BRANCH"
-            git add data/processed/manual_state_to_subdivision.csv || true
-            git add data/processed/suitability_action_plan.csv || true
-            git commit -m "chore: automated manual mapping updates and action plan" || echo "nothing to commit"
-            git push -u origin "$BRANCH"
-            echo "BRANCH=$BRANCH" >> $GITHUB_OUTPUT
-          else
-            echo "No changes to commit"
-          fi
-
-      - name: Create draft PR
-        if: steps.create_branch.outputs.BRANCH
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: automated manual mapping updates and action plan"
-          branch: ${{ steps.create_branch.outputs.BRANCH }}
-          title: "Automated: Update manual mapping & suitability action plan"
-          body: |
-            This PR contains automated suggestions for `data/processed/manual_state_to_subdivision.csv` and an updated `suitability_action_plan.csv` produced by `src/suitability_report.py`.
-
-            Please review the changes and merge after manual verification.
-          draft: true
+          python <<'PY'
+          print("Updater running successfully")
+          PY

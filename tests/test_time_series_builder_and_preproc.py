@@ -39,3 +39,37 @@ def test_build_time_series_column_case_insensitive_and_prod_cols():
     ts2 = build_time_series(df2, 'A', 'X')
     assert len(ts2) == 2
     assert ts2.sum() == 20
+
+
+def test_build_time_series_missing_production_column_raises():
+    df = pd.DataFrame({'state_name':['A','A'], 'crop':['X','X'], 'year':[2019,2020]})
+    with pytest.raises(Exception) as exc:
+        build_time_series(df, 'A', 'X')
+    assert 'No production column' in str(exc.value)
+
+
+def test_build_time_series_no_matching_rows_raises():
+    df = pd.DataFrame({'state_name':['B','B'], 'crop':['Y','Y'], 'year':[2019,2020], 'yield':[1,2]})
+    with pytest.raises(Exception) as exc:
+        build_time_series(df, 'A', 'X')
+    assert 'No data found' in str(exc.value)
+
+
+def test_build_time_series_non_numeric_production_raises():
+    df = pd.DataFrame({'state_name':['A','A'], 'crop':['X','X'], 'year':[2019,2020], 'yield':['a','b']})
+    with pytest.raises(Exception):
+        build_time_series(df, 'A', 'X')
+
+
+def test_build_time_series_unsorted_years_sorted_by_year():
+    df = pd.DataFrame({'state_name':['A','A','A'], 'crop':['X','X','X'], 'year':[2020,2018,2019], 'yield':[20,5,10]})
+    ts = build_time_series(df, 'A', 'X')
+    # After sorting by year, the values should be [5,10,20]
+    assert list(ts.values) == [5.0, 10.0, 20.0]
+
+
+def test_build_time_series_missing_required_columns():
+    df = pd.DataFrame({'state':['A'], 'crop_type':['X'], 'yr':[2019]})
+    with pytest.raises(Exception) as exc:
+        build_time_series(df, 'A', 'X')
+    assert 'Missing required columns' in str(exc.value)

@@ -1,5 +1,6 @@
 import sys
 import os
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
@@ -28,16 +29,19 @@ st.set_page_config(page_title="AgroDash", page_icon="🌾", layout="wide")
 
 # Styling
 PRIMARY = "#2E8B57"  # sea green
-ACCENT = "#FFD54F"   # warm yellow
+ACCENT = "#FFD54F"  # warm yellow
 BG = "#F8FFF5"
 
-st.markdown(f"""
+st.markdown(
+    f"""
 <style>
 [data-testid='stAppViewContainer'] {{ background: {BG}; }}
 .header {{ background: linear-gradient(90deg, {PRIMARY}, #47C988); padding: 10px; border-radius: 8px; }}
 .card {{ background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }}
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # assets path
 ASSETS = Path(__file__).parent / "assets"
@@ -66,7 +70,18 @@ if final_path.exists():
 
 dataset_choice = st.sidebar.selectbox("Dataset source", dataset_options, index=0)
 
-menu = st.sidebar.radio("Navigate", ["Dashboard", "Crop Management", "Weather", "Market Prices", "Settings & Profiles", "About & Contact"], index=0)
+menu = st.sidebar.radio(
+    "Navigate",
+    [
+        "Dashboard",
+        "Crop Management",
+        "Weather",
+        "Market Prices",
+        "Settings & Profiles",
+        "About & Contact",
+    ],
+    index=0,
+)
 
 # Load app-level dataset (for dashboard metrics)
 data_root = Path(__file__).parent.parent / "data"
@@ -75,7 +90,7 @@ dataset_source = None
 try:
     if dataset_choice == "Final dataset" and load_final_dataset:
         app_data = load_final_dataset()
-        dataset_source = 'final'
+        dataset_source = "final"
     elif dataset_choice == "Enriched (with YEAR)" and load_cleaned_dataset:
         app_data, dataset_source = load_cleaned_dataset(prefer_enriched=True)
     elif dataset_choice == "Cleaned (raw)" and load_cleaned_dataset:
@@ -86,12 +101,12 @@ try:
             app_data, dataset_source = load_cleaned_dataset(prefer_enriched=True)
         elif load_final_dataset:
             app_data = load_final_dataset()
-            dataset_source = 'final'
+            dataset_source = "final"
 except Exception:
     # Last-resort fallback
     try:
         app_data = pd.read_csv(data_root / "processed" / "cleaned_crop_data.csv")
-        dataset_source = 'cleaned-fallback'
+        dataset_source = "cleaned-fallback"
     except Exception:
         app_data = None
         dataset_source = None
@@ -100,14 +115,21 @@ except Exception:
 if dataset_source:
     st.sidebar.info(f"Using dataset: {dataset_source}")
 else:
-    st.sidebar.warning("No dataset available — please add cleaned or final dataset into data/processed/")
+    st.sidebar.warning(
+        "No dataset available — please add cleaned or final dataset into data/processed/"
+    )
 
 # Top header row
 with st.container():
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.markdown("<div class='header'><h1 style='color:white'>🌾 AgroDash — Crop Yield & Advisory</h1></div>", unsafe_allow_html=True)
-        st.write("A colorful dashboard to monitor crop yields, weather, and market prices.")
+        st.markdown(
+            "<div class='header'><h1 style='color:white'>🌾 AgroDash — Crop Yield & Advisory</h1></div>",
+            unsafe_allow_html=True,
+        )
+        st.write(
+            "A colorful dashboard to monitor crop yields, weather, and market prices."
+        )
     with col2:
         if hero_path.exists():
             st.image(str(hero_path))
@@ -115,17 +137,22 @@ with st.container():
 # ===== Dashboard =====
 if menu == "Dashboard":
     st.header("📊 Dashboard — Today's snapshot")
-    if dataset_source and 'enrich' in str(dataset_source).lower():
-        st.info("Using enriched dataset with YEAR — time-series and forecasts will be available.")
-    elif dataset_source and 'cleaned' in str(dataset_source).lower():
-        st.info("Using cleaned dataset (no YEAR) — some time-series features may be disabled.")
+    if dataset_source and "enrich" in str(dataset_source).lower():
+        st.info(
+            "Using enriched dataset with YEAR — time-series and forecasts will be available."
+        )
+    elif dataset_source and "cleaned" in str(dataset_source).lower():
+        st.info(
+            "Using cleaned dataset (no YEAR) — some time-series features may be disabled."
+        )
     # top stats
     col1, col2, col3, col4 = st.columns(4)
+
     # compute dynamic metrics when data available
     def get_states_count(df):
         if df is None:
             return 0
-        for col in ['state_name','State_Name','STATE_NAME','State_Name']:
+        for col in ["state_name", "State_Name", "STATE_NAME", "State_Name"]:
             if col in df.columns:
                 return df[col].nunique()
         return 0
@@ -133,7 +160,7 @@ if menu == "Dashboard":
     def get_avg_yield(df):
         if df is None:
             return None
-        candidates = ['yield_ton_per_hec','Yield_ton_per_hec','yield','Yield']
+        candidates = ["yield_ton_per_hec", "Yield_ton_per_hec", "yield", "Yield"]
         for c in candidates:
             if c in df.columns:
                 try:
@@ -158,6 +185,7 @@ if menu == "Dashboard":
     a1, a2, a3 = st.columns(3)
     if a1.button("📥 Refresh Data"):
         import time
+
         st.experimental_set_query_params(_refresh=int(time.time()))
         st.success("Refresh requested — reloading data")
     if a2.button("🔔 Send Alerts"):
@@ -168,7 +196,10 @@ if menu == "Dashboard":
 # ===== Crop Management =====
 elif menu == "Crop Management":
     st.header("🌱 Crop Management")
-    sub = st.selectbox("Choose view", ["Field View", "Input Data", "ARIMA Prediction", "Recommendations"])
+    sub = st.selectbox(
+        "Choose view",
+        ["Field View", "Input Data", "ARIMA Prediction", "Recommendations"],
+    )
 
     # Prefer the app-level loaded dataset, otherwise try to load based on choice
     df = app_data
@@ -224,7 +255,7 @@ elif menu == "Crop Management":
         def get_states(df):
             if df is None:
                 return []
-            for col in ['state_name','State_Name','STATE_NAME','State_Name']:
+            for col in ["state_name", "State_Name", "STATE_NAME", "State_Name"]:
                 if col in df.columns:
                     return sorted(df[col].astype(str).str.title().unique())
             return []
@@ -258,12 +289,14 @@ elif menu == "Crop Management":
 
     if sub == "ARIMA Prediction":
         st.subheader("ARIMA / SARIMA Prediction")
-        state_col = find_col(df, ['state_name','State_Name','STATE_NAME','state'])
-        crop_col = find_col(df, ['crop','Crop'])
-        year_col = find_col(df, ['year'])
+        state_col = find_col(df, ["state_name", "State_Name", "STATE_NAME", "state"])
+        crop_col = find_col(df, ["crop", "Crop"])
+        year_col = find_col(df, ["year"])
 
         if df is None or state_col is None or crop_col is None:
-            st.info("Dataset not loaded or missing state/crop columns. Check dataset selection in the sidebar.")
+            st.info(
+                "Dataset not loaded or missing state/crop columns. Check dataset selection in the sidebar."
+            )
         else:
             state = st.selectbox("State", sorted(df[state_col].astype(str).unique()))
             crop = st.selectbox("Crop", sorted(df[crop_col].astype(str).unique()))
@@ -271,7 +304,9 @@ elif menu == "Crop Management":
             if st.button("Run Forecast"):
                 if prepare_sarima_series and train_sarima:
                     if year_col is None:
-                        st.error("Selected dataset doesn't contain a 'year' column required for time-series. Use an enriched dataset.")
+                        st.error(
+                            "Selected dataset doesn't contain a 'year' column required for time-series. Use an enriched dataset."
+                        )
                     else:
                         try:
                             ts = prepare_sarima_series(df, state, crop)
@@ -279,7 +314,9 @@ elif menu == "Crop Management":
                             st.line_chart(forecast)
                         except Exception as e:
                             # Try tolerant fallback matching when exact filter yields no data
-                            st.warning(f"Initial forecast failed: {e}. Trying tolerant matching...")
+                            st.warning(
+                                f"Initial forecast failed: {e}. Trying tolerant matching..."
+                            )
 
                             def find_best_match(col, val):
                                 val_l = val.lower().strip()
@@ -306,13 +343,19 @@ elif menu == "Crop Management":
                             if state_match is None or crop_match is None:
                                 st.error(f"Forecast failed: {e}")
                             else:
-                                st.info(f"Using matched values: State='{state_match}', Crop='{crop_match}'")
+                                st.info(
+                                    f"Using matched values: State='{state_match}', Crop='{crop_match}'"
+                                )
                                 try:
-                                    ts2 = prepare_sarima_series(df, state_match, crop_match)
+                                    ts2 = prepare_sarima_series(
+                                        df, state_match, crop_match
+                                    )
                                     forecast2 = train_sarima(ts2)
                                     st.line_chart(forecast2)
                                 except Exception as e2:
-                                    st.error(f"Forecast failed after tolerant matching: {e2}")
+                                    st.error(
+                                        f"Forecast failed after tolerant matching: {e2}"
+                                    )
                 else:
                     st.warning("Modeling functions not available in this environment")
 
@@ -334,13 +377,18 @@ elif menu == "Weather":
 elif menu == "Market Prices":
     st.header("🏷️ Local Market Prices")
     st.write("Shows recent local mandi prices and trends.")
-    st.table(pd.DataFrame({'Crop': ['Rice','Wheat','Potato'], 'Price (₹/qtl)': [2200, 1900, 800]}))
+    st.table(
+        pd.DataFrame(
+            {"Crop": ["Rice", "Wheat", "Potato"], "Price (₹/qtl)": [2200, 1900, 800]}
+        )
+    )
 
 # ===== Settings & Profiles =====
 elif menu == "Settings & Profiles":
     st.header("⚙️ Settings & Profiles")
     st.write("User profile and app settings")
     import re
+
     users_file = Path(__file__).parent.parent / "data" / "processed" / "users.csv"
     with st.form("profile_form"):
         name = st.text_input("Name")
@@ -369,7 +417,9 @@ elif menu == "Settings & Profiles":
 # ===== About & Contact =====
 elif menu == "About & Contact":
     st.header("About AgroDash")
-    st.write("A demo app for crop yield prediction, weather advisories and local market monitoring.")
+    st.write(
+        "A demo app for crop yield prediction, weather advisories and local market monitoring."
+    )
     st.write("Contact: support@example.com")
 
 # Footer

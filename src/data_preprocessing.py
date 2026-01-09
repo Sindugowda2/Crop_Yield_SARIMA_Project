@@ -17,16 +17,21 @@ def prepare_sarima_series(df, state, crop):
         return None
 
     cols = list(df.columns)
-    state_col = find_col(cols, ['state_name','state'])
-    crop_col = find_col(cols, ['crop'])
-    year_col = find_col(cols, ['year'])
-    prod_col = find_col(cols, ['production','production_in_tons','production_tons'])
+    state_col = find_col(cols, ["state_name", "state"])
+    crop_col = find_col(cols, ["crop"])
+    year_col = find_col(cols, ["year"])
+    prod_col = find_col(cols, ["production", "production_in_tons", "production_tons"])
 
     if not state_col or not crop_col or not year_col or not prod_col:
-        raise Exception("Missing required columns for SARIMA preparation (state, crop, year, production)")
+        raise Exception(
+            "Missing required columns for SARIMA preparation (state, crop, year, production)"
+        )
 
     # filter (case-insensitive)
-    filtered = df[(df[state_col].astype(str).str.lower() == state.lower()) & (df[crop_col].astype(str).str.lower() == crop.lower())]
+    filtered = df[
+        (df[state_col].astype(str).str.lower() == state.lower())
+        & (df[crop_col].astype(str).str.lower() == crop.lower())
+    ]
 
     if filtered.empty:
         raise Exception("No data for selected State & Crop")
@@ -37,16 +42,13 @@ def prepare_sarima_series(df, state, crop):
 
     # ensure production column is numeric (raise on invalid values)
     import pandas as pd
+
     try:
         filtered.loc[:, prod_col] = pd.to_numeric(filtered[prod_col], errors="raise")
     except Exception:
         raise Exception("Production column contains non-numeric values")
 
-    ts = (
-        filtered.groupby(year_col)[prod_col]
-        .sum()
-        .sort_index()
-    )
+    ts = filtered.groupby(year_col)[prod_col].sum().sort_index()
 
     return ts
 
@@ -70,14 +72,27 @@ def clean_data(df):
 
     cols = set(df.columns)
 
-    months = {'jan','feb','mar','apr','may','june','july','aug','sep','oct','nov','dec'}
+    months = {
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "may",
+        "june",
+        "july",
+        "aug",
+        "sep",
+        "oct",
+        "nov",
+        "dec",
+    }
 
     # Fertilizer dataset
-    if {'n','p','k'}.issubset(cols) and 'crop' in cols:
-        df['crop'] = df['crop'].astype(str).str.lower().str.strip()
+    if {"n", "p", "k"}.issubset(cols) and "crop" in cols:
+        df["crop"] = df["crop"].astype(str).str.lower().str.strip()
         # keep only relevant columns
-        keep = ['crop'] + [c for c in ['n','p','k','ph'] if c in df.columns]
-        return df[keep].drop_duplicates(subset=['crop']).reset_index(drop=True)
+        keep = ["crop"] + [c for c in ["n", "p", "k", "ph"] if c in df.columns]
+        return df[keep].drop_duplicates(subset=["crop"]).reset_index(drop=True)
 
     # Temperature dataset (monthly columns present)
     if months.intersection(cols):
@@ -92,70 +107,91 @@ def clean_data(df):
             state_col = df.columns[0]
         # compute row-wise mean across months present
         month_cols = [c for c in df.columns if c in months]
-        df['temperature'] = df[month_cols].astype(float).mean(axis=1)
-        df['state_name'] = df[state_col].astype(str).str.lower().str.replace('\n',' ').str.strip()
-        return df[['state_name','temperature']].drop_duplicates(subset=['state_name']).reset_index(drop=True)
+        df["temperature"] = df[month_cols].astype(float).mean(axis=1)
+        df["state_name"] = (
+            df[state_col].astype(str).str.lower().str.replace("\n", " ").str.strip()
+        )
+        return (
+            df[["state_name", "temperature"]]
+            .drop_duplicates(subset=["state_name"])
+            .reset_index(drop=True)
+        )
 
     # Rainfall / Final dataset (contains 'rainfall')
-    if 'rainfall' in cols:
+    if "rainfall" in cols:
         # ensure state and crop columns
         state_col = None
-        for c in ['state_name','state']:
+        for c in ["state_name", "state"]:
             if c in df.columns:
                 state_col = c
                 break
         if not state_col:
             # try to find a column containing 'state'
             for c in df.columns:
-                if 'state' in c:
+                if "state" in c:
                     state_col = c
                     break
         crop_col = None
-        for c in ['crop','crop_name']:
+        for c in ["crop", "crop_name"]:
             if c in df.columns:
                 crop_col = c
                 break
         if not crop_col:
             for c in df.columns:
-                if 'crop' in c:
+                if "crop" in c:
                     crop_col = c
                     break
         # normalize
         if state_col:
-            df['state_name'] = df[state_col].astype(str).str.lower().str.strip()
+            df["state_name"] = df[state_col].astype(str).str.lower().str.strip()
         if crop_col:
-            df['crop'] = df[crop_col].astype(str).str.lower().str.strip()
+            df["crop"] = df[crop_col].astype(str).str.lower().str.strip()
         # keep commonly relevant columns
-        keep = [c for c in ['state_name','crop','crop_type','rainfall','area_in_hectares','production_in_tons','yield_ton_per_hec','temperature'] if c in df.columns]
+        keep = [
+            c
+            for c in [
+                "state_name",
+                "crop",
+                "crop_type",
+                "rainfall",
+                "area_in_hectares",
+                "production_in_tons",
+                "yield_ton_per_hec",
+                "temperature",
+            ]
+            if c in df.columns
+        ]
         return df[[c for c in keep if c in df.columns]].reset_index(drop=True)
 
     # Generic crop production dataset (has year and production)
-    if 'year' in cols and any(k in cols for k in ['production','production_in_tons','production_tons']):
+    if "year" in cols and any(
+        k in cols for k in ["production", "production_in_tons", "production_tons"]
+    ):
         # find production column
         prod_col = None
-        for c in ['production','production_in_tons','production_tons']:
+        for c in ["production", "production_in_tons", "production_tons"]:
             if c in df.columns:
                 prod_col = c
                 break
         state_col = None
-        for c in ['state_name','state']:
+        for c in ["state_name", "state"]:
             if c in df.columns:
                 state_col = c
                 break
         crop_col = None
-        for c in ['crop','crop_name']:
+        for c in ["crop", "crop_name"]:
             if c in df.columns:
                 crop_col = c
                 break
         # normalize
         if state_col:
-            df['state_name'] = df[state_col].astype(str).str.lower().str.strip()
+            df["state_name"] = df[state_col].astype(str).str.lower().str.strip()
         if crop_col:
-            df['crop'] = df[crop_col].astype(str).str.lower().str.strip()
-        df['year'] = df['year'].astype(float).astype(int)
-        df['production'] = df[prod_col]
-        keep = ['state_name','crop','year','production']
-        for c in ['area_in_hectares','yield_ton_per_hec','crop_type']:
+            df["crop"] = df[crop_col].astype(str).str.lower().str.strip()
+        df["year"] = df["year"].astype(float).astype(int)
+        df["production"] = df[prod_col]
+        keep = ["state_name", "crop", "year", "production"]
+        for c in ["area_in_hectares", "yield_ton_per_hec", "crop_type"]:
             if c in df.columns:
                 keep.append(c)
         return df[[c for c in keep if c in df.columns]].reset_index(drop=True)
@@ -163,4 +199,3 @@ def clean_data(df):
     # fallback: just return lower-cased columns
     df = df.rename(columns={c: c.lower() for c in df.columns})
     return df.copy()
-

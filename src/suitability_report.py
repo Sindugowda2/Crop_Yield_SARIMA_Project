@@ -8,6 +8,7 @@ Writes:
 - data/processed/suitability_action_plan.csv
 
 """
+
 from pathlib import Path
 import pandas as pd
 
@@ -21,13 +22,19 @@ OUT_FILE = PROC / "suitability_action_plan.csv"
 
 def build_action_plan(min_years=5):
     if not SUIT_FILE.exists():
-        print(f"Suitability file not found: {SUIT_FILE}. Try running merge_datasets.merge_all_datasets() to generate it.")
+        print(
+            f"Suitability file not found: {SUIT_FILE}. Try running merge_datasets.merge_all_datasets() to generate it."
+        )
         return None
 
     suit = pd.read_csv(SUIT_FILE)
-    miss = pd.read_csv(MISSING_FILE) if MISSING_FILE.exists() else pd.DataFrame(columns=["state_name","count"]) 
+    miss = (
+        pd.read_csv(MISSING_FILE)
+        if MISSING_FILE.exists()
+        else pd.DataFrame(columns=["state_name", "count"])
+    )
 
-    miss = miss.rename(columns={"state_name":"state_name","count":"missing_rows"})
+    miss = miss.rename(columns={"state_name": "state_name", "count": "missing_rows"})
 
     out = suit.merge(miss, on="state_name", how="left")
     out["missing_rows"] = out["missing_rows"].fillna(0).astype(int)

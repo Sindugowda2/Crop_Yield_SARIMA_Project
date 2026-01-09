@@ -73,9 +73,13 @@ def build_time_series(df: pd.DataFrame, state: str, crop: str) -> pd.Series:
 
     # Choose a production column (prefer 'yield', then 'production_in_tons', then 'yield_ton_per_hec')
     prod_candidates = ["yield", "production_in_tons", "yield_ton_per_hec"]
-    prod_col: Optional[str] = next((c for c in prod_candidates if c in df.columns), None)
+    prod_col: Optional[str] = next(
+        (c for c in prod_candidates if c in df.columns), None
+    )
     if prod_col is None:
-        raise Exception("No production column found (expected one of: yield, production_in_tons, yield_ton_per_hec)")
+        raise Exception(
+            "No production column found (expected one of: yield, production_in_tons, yield_ton_per_hec)"
+        )
 
     filtered = df[(df["state_name"] == state) & (df["crop"] == crop)]
 

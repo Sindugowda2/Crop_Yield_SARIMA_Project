@@ -29,13 +29,15 @@ def merge_all_datasets(raw_dir=None, processed_dir=None, out_dir=None):
     if os.path.exists(final_temp_path):
         rain_temp = clean_data(pd.read_csv(final_temp_path))
     else:
-        rain_temp = clean_data(pd.read_csv(os.path.join(RAW, "Data_after_rainfall.csv")))
+        rain_temp = clean_data(
+            pd.read_csv(os.path.join(RAW, "Data_after_rainfall.csv"))
+        )
         # try to augment with temperature if available
         temp_path = os.path.join(RAW, "temperature.csv")
         if os.path.exists(temp_path):
             temp = clean_data(pd.read_csv(temp_path))
             # temp: state_name, temperature
-            rain_temp = rain_temp.merge(temp, on='state_name', how='left')
+            rain_temp = rain_temp.merge(temp, on="state_name", how="left")
 
     fertilizer = clean_data(pd.read_csv(os.path.join(RAW, "Fertilizer.csv")))
 
@@ -45,7 +47,7 @@ def merge_all_datasets(raw_dir=None, processed_dir=None, out_dir=None):
     df = crop.merge(rain_temp, on=["state_name", "crop"], how="left")
 
     # Fertilizer is crop-level; merge on crop only
-    if 'crop' in fertilizer.columns:
+    if "crop" in fertilizer.columns:
         fert = fertilizer.rename(columns={c: c for c in fertilizer.columns})
         df = df.merge(fert, on=["crop"], how="left")
 
@@ -61,16 +63,18 @@ def merge_all_datasets(raw_dir=None, processed_dir=None, out_dir=None):
 
 def generate_suitability_report(df, min_years=5, out_dir=None):
     """Generate a CSV with counts of unique years per (state,crop) and a usability flag."""
-    if not {'state_name','crop','year'}.issubset(set(df.columns)):
-        print("Skipping suitability report: required columns not present (state_name,crop,year)")
+    if not {"state_name", "crop", "year"}.issubset(set(df.columns)):
+        print(
+            "Skipping suitability report: required columns not present (state_name,crop,year)"
+        )
         return
 
-    grp = df.groupby(['state_name','crop'])['year'].nunique().reset_index()
-    grp = grp.rename(columns={'year':'year_count'})
-    grp['usable_for_sarima'] = grp['year_count'] >= min_years
+    grp = df.groupby(["state_name", "crop"])["year"].nunique().reset_index()
+    grp = grp.rename(columns={"year": "year_count"})
+    grp["usable_for_sarima"] = grp["year_count"] >= min_years
 
     out_dir = out_dir or PROCESSED_DIR
-    out = os.path.join(out_dir, 'dataset_suitability.csv')
+    out = os.path.join(out_dir, "dataset_suitability.csv")
     grp.to_csv(out, index=False)
     print(f"Suitability report saved: {out}")
 

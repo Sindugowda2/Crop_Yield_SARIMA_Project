@@ -13,6 +13,7 @@ from pathlib import Path
 import csv
 import re
 from datetime import datetime
+import difflib
 
 BASE = Path(__file__).resolve().parents[1]
 RAW = BASE / "data" / "raw"
@@ -67,7 +68,6 @@ def load_subdivisions(path=RAINFALL_FILE):
     return subs
 
 
-import difflib
 
 def suggest_mapping(missing_states=None, subdivisions=None):
     # Build normalized token sets for subdivisions

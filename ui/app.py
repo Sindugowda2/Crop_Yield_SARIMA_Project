@@ -1,4 +1,5 @@
-import sys, os
+import sys
+import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
@@ -86,7 +87,7 @@ try:
         elif load_final_dataset:
             app_data = load_final_dataset()
             dataset_source = 'final'
-except Exception as e:
+except Exception:
     # Last-resort fallback
     try:
         app_data = pd.read_csv(data_root / "processed" / "cleaned_crop_data.csv")

@@ -1,7 +1,5 @@
 import sys
-from pathlib import Path
 from src.data_loader import load_cleaned_dataset
-import pandas as pd
 
 
 def main():

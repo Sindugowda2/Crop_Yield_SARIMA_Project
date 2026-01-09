@@ -1,4 +1,3 @@
-import pytest
 from src.data_loader import load_cleaned_dataset
 from src.time_series_builder import build_time_series
 

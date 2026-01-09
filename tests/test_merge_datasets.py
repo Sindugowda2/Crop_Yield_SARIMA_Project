@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 from src.merge_datasets import merge_all_datasets
 

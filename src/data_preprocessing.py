@@ -63,7 +63,6 @@ def clean_data(df):
 
     Returns a dataframe with standardized column names tailored to input content.
     """
-    import pandas as pd
 
     df = df.copy()
     # normalize column names

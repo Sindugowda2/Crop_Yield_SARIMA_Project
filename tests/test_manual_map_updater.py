@@ -1,6 +1,4 @@
-import os
 import csv
-from pathlib import Path
 from src.manual_map_updater import suggest_and_apply, append_manual_mappings, suggest_mapping
 
 

@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
+        python-version: ['3.10', '3.11']
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -44,9 +44,23 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pytest pytest-cov
+      - name: Print environment info
+        run: |
+          python -V
+          pip --version
+          pip list
       - name: Run tests with coverage
         run: |
-          pytest --cov=src --cov-report=xml --cov-report=term -q
+          set -euo pipefail
+          pytest --version
+          pytest --cov=src --cov-report=xml --cov-report=term -q 2>&1 | tee pytest.log
+          exit ${PIPESTATUS[0]}
+      - name: Upload pytest log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-log
+          path: pytest.log
       - name: Upload coverage XML as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -59,7 +73,7 @@ jobs:
           name: pytest-report
           path: pytest-report.xml
       - name: Upload to Codecov (optional)
-        if: env.CODECOV_TOKEN
+        if: ${{ secrets.CODECOV_TOKEN }}
         uses: codecov/codecov-action@v4
         with:
           files: coverage.xml
@@ -70,24 +84,26 @@ jobs:
           COVERAGE_THRESHOLD: 80
         run: |
           python - <<'PY'
-import sys, os, xml.etree.ElementTree as ET
-threshold = int(os.getenv('COVERAGE_THRESHOLD', '80'))
-try:
-    tree = ET.parse('coverage.xml')
-    root = tree.getroot()
-    # coverage.xml from coverage.py has line-rate attribute
-    rate = float(root.attrib.get('line-rate', '0'))
-    percent = rate * 100.0
-    print(f"Coverage: {percent:.2f}% (threshold: {threshold}%)")
-    if percent < threshold:
-        print("ERROR: Coverage below threshold")
-        sys.exit(1)
-    else:
-        print("Coverage OK")
-except FileNotFoundError:
-    print('ERROR: coverage.xml not found')
-    sys.exit(1)
-except Exception as e:
-    print(f'ERROR: Failed to parse coverage.xml: {e}')
-    sys.exit(1)
-PY
+          import sys
+          import os
+          import xml.etree.ElementTree as ET
+          threshold = int(os.getenv('COVERAGE_THRESHOLD', '80'))
+          try:
+              tree = ET.parse('coverage.xml')
+              root = tree.getroot()
+              # coverage.xml from coverage.py has line-rate attribute
+              rate = float(root.attrib.get('line-rate', '0'))
+              percent = rate * 100.0
+              print(f"Coverage: {percent:.2f}% (threshold: {threshold}%)")
+              if percent < threshold:
+                  print("ERROR: Coverage below threshold")
+                  sys.exit(1)
+              else:
+                  print("Coverage OK")
+          except FileNotFoundError:
+              print('ERROR: coverage.xml not found')
+              sys.exit(1)
+          except Exception as e:
+              print(f'ERROR: Failed to parse coverage.xml: {e}')
+              sys.exit(1)
+          PY

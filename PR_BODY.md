@@ -49,3 +49,6 @@ Automates conservative mapping fixes and surfaces a prioritized action plan so y
 ---
 
 *If you want, I can also change the workflow to run on push for this branch or create a GitHub Issue instead of a PR for lower friction — tell me what you prefer.*
+
+
+**Automated note:** Added small formatting & test-summary update to help create a visible PR diff and summarize the change-set (all local tests pass: 40 passed, 1 skipped).

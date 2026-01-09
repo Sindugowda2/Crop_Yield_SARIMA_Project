@@ -26,13 +26,15 @@ def load_cleaned_dataset(prefer_enriched: bool = True):
 
     if prefer_enriched and os.path.exists(enriched_path):
         df = pd.read_csv(enriched_path)
-        return df, 'enriched'
+        return df, "enriched"
 
     if os.path.exists(cleaned_path):
         df = pd.read_csv(cleaned_path)
-        return df, 'cleaned'
+        return df, "cleaned"
 
-    raise FileNotFoundError(f"Neither cleaned dataset nor enriched dataset found in {PROCESSED_DIR}")
+    raise FileNotFoundError(
+        f"Neither cleaned dataset nor enriched dataset found in {PROCESSED_DIR}"
+    )
 
 
 def load_cleaned_dataset_df(prefer_enriched: bool = True):

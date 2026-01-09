@@ -9,10 +9,12 @@ Behavior:
 
 This is intentionally conservative and records a backup before writing.
 """
+
 from pathlib import Path
 import csv
 import re
 from datetime import datetime
+import difflib
 
 BASE = Path(__file__).resolve().parents[1]
 RAW = BASE / "data" / "raw"
@@ -23,6 +25,7 @@ RAINFALL_FILE = RAW / "rainfall_validation.csv"
 
 _token_re = re.compile(r"[a-z0-9]+")
 
+
 def normalize_text(s: str):
     return " ".join(_token_re.findall(str(s).lower()))
 
@@ -31,11 +34,11 @@ def load_manual_map(path=MANUAL_FILE):
     mapping = {}
     if not path.exists():
         return mapping
-    with path.open(newline='', encoding='utf-8') as fh:
+    with path.open(newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
         for row in reader:
-            state = row.get('state') or row.get('state_name')
-            subdiv = row.get('subdivision')
+            state = row.get("state") or row.get("state_name")
+            subdiv = row.get("subdivision")
             if state and subdiv:
                 mapping[state.strip().lower()] = subdiv.strip().lower()
     return mapping
@@ -45,10 +48,10 @@ def load_missing_states(path=MISSING_FILE):
     if not path.exists():
         return []
     out = []
-    with path.open(newline='', encoding='utf-8') as fh:
+    with path.open(newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
         for row in reader:
-            st = row.get('state_name') or row.get('state')
+            st = row.get("state_name") or row.get("state")
             if st:
                 out.append(st.strip().lower())
     return out
@@ -58,16 +61,14 @@ def load_subdivisions(path=RAINFALL_FILE):
     subs = set()
     if not path.exists():
         return subs
-    with path.open(newline='', encoding='utf-8') as fh:
+    with path.open(newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
         for row in reader:
-            s = row.get('SUBDIVISION') or row.get('subdivision')
+            s = row.get("SUBDIVISION") or row.get("subdivision")
             if s:
                 subs.add(s.strip().lower())
     return subs
 
-
-import difflib
 
 def suggest_mapping(missing_states=None, subdivisions=None):
     # Build normalized token sets for subdivisions
@@ -92,7 +93,9 @@ def suggest_mapping(missing_states=None, subdivisions=None):
         # fallback: substring containment
         if best is None or best_score == 0:
             for sub in subdivisions:
-                if normalize_text(st) in normalize_text(sub) or normalize_text(sub) in normalize_text(st):
+                if normalize_text(st) in normalize_text(sub) or normalize_text(
+                    sub
+                ) in normalize_text(st):
                     best = sub
                     break
         # fallback: token-level fuzzy matching using sequence similarity
@@ -129,32 +132,32 @@ def append_manual_mappings(suggestions: dict, path=MANUAL_FILE, backup=True):
 
     # read existing rows (if any) and optionally backup
     if path.exists():
-        with path.open(newline='', encoding='utf-8') as fh:
+        with path.open(newline="", encoding="utf-8") as fh:
             reader = csv.DictReader(fh)
-            fieldnames = reader.fieldnames or ['state','subdivision']
+            fieldnames = reader.fieldnames or ["state", "subdivision"]
             old_rows = [r for r in reader]
         if backup:
-            ts = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
-            bak = path.with_suffix(f'.bak.{ts}')
+            ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+            bak = path.with_suffix(f".bak.{ts}")
             path.rename(bak)
     else:
-        fieldnames = ['state','subdivision']
+        fieldnames = ["state", "subdivision"]
         old_rows = []
 
     # Avoid duplicating states already present in old_rows
-    existing = {r['state'].strip().lower() for r in old_rows}
+    existing = {r["state"].strip().lower() for r in old_rows}
     new_rows = []
     for state, subdiv in suggestions.items():
         if state in existing:
             continue
-        new_rows.append({'state': state, 'subdivision': subdiv})
+        new_rows.append({"state": state, "subdivision": subdiv})
 
     # write merged file (old rows first, then new rows)
-    with path.open('w', newline='', encoding='utf-8') as fh:
+    with path.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()
         for r in old_rows:
-            writer.writerow({k: r.get(k, '') for k in fieldnames})
+            writer.writerow({k: r.get(k, "") for k in fieldnames})
         for r in new_rows:
             writer.writerow(r)
 
@@ -162,7 +165,9 @@ def append_manual_mappings(suggestions: dict, path=MANUAL_FILE, backup=True):
     return path
 
 
-def suggest_and_apply(apply=False, min_missing_count=0, raw_dir=None, processed_dir=None):
+def suggest_and_apply(
+    apply=False, min_missing_count=0, raw_dir=None, processed_dir=None
+):
     """Main helper: suggest mappings for missing states and optionally append them.
 
     If min_missing_count > 0, only consider states with missing_rows >= threshold.
@@ -171,17 +176,17 @@ def suggest_and_apply(apply=False, min_missing_count=0, raw_dir=None, processed_
     proc_path = Path(processed_dir) if processed_dir else PROC
     raw_path = Path(raw_dir) if raw_dir else RAW
 
-    missing = load_missing_states(path=proc_path / 'missing_year_state_counts.csv')
+    missing = load_missing_states(path=proc_path / "missing_year_state_counts.csv")
     if not missing:
         print("No missing states found to map.")
         return {}
 
-    subs = load_subdivisions(path=raw_path / 'rainfall_validation.csv')
+    subs = load_subdivisions(path=raw_path / "rainfall_validation.csv")
     if not subs:
         print("No subdivisions (rainfall file missing) to match against.")
         return {}
 
-    existing = load_manual_map(path=proc_path / 'manual_state_to_subdivision.csv')
+    existing = load_manual_map(path=proc_path / "manual_state_to_subdivision.csv")
     to_consider = [s for s in missing if s not in existing]
 
     suggestions = suggest_mapping(to_consider, subs)
@@ -195,7 +200,9 @@ def suggest_and_apply(apply=False, min_missing_count=0, raw_dir=None, processed_
         print(f"  {k} -> {v}")
 
     if apply:
-        append_manual_mappings(suggestions, path=proc_path / 'manual_state_to_subdivision.csv')
+        append_manual_mappings(
+            suggestions, path=proc_path / "manual_state_to_subdivision.csv"
+        )
     else:
         print("Dry run: pass apply=True to append suggestions to manual mapping file.")
     return suggestions
@@ -205,7 +212,9 @@ if __name__ == "__main__":
     import argparse
 
     p = argparse.ArgumentParser()
-    p.add_argument("--apply", action='store_true', help="Append suggestions to manual mapping file")
+    p.add_argument(
+        "--apply", action="store_true", help="Append suggestions to manual mapping file"
+    )
     args = p.parse_args()
 
     suggest_and_apply(apply=args.apply)

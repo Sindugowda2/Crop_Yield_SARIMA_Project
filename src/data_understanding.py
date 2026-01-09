@@ -4,6 +4,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data", "raw")
 
+
 def understand_data():
     df = pd.read_csv(os.path.join(DATA_DIR, "Crop_production.csv"))
 
@@ -19,6 +20,7 @@ def understand_data():
 
     print("\nSample Rows:")
     print(df.head())
+
 
 if __name__ == "__main__":
     understand_data()

@@ -84,24 +84,26 @@ jobs:
           COVERAGE_THRESHOLD: 80
         run: |
           python - <<'PY'
-import sys, os, xml.etree.ElementTree as ET
-threshold = int(os.getenv('COVERAGE_THRESHOLD', '80'))
-try:
-    tree = ET.parse('coverage.xml')
-    root = tree.getroot()
-    # coverage.xml from coverage.py has line-rate attribute
-    rate = float(root.attrib.get('line-rate', '0'))
-    percent = rate * 100.0
-    print(f"Coverage: {percent:.2f}% (threshold: {threshold}%)")
-    if percent < threshold:
-        print("ERROR: Coverage below threshold")
-        sys.exit(1)
-    else:
-        print("Coverage OK")
-except FileNotFoundError:
-    print('ERROR: coverage.xml not found')
-    sys.exit(1)
-except Exception as e:
-    print(f'ERROR: Failed to parse coverage.xml: {e}')
-    sys.exit(1)
-PY
+          import sys
+          import os
+          import xml.etree.ElementTree as ET
+          threshold = int(os.getenv('COVERAGE_THRESHOLD', '80'))
+          try:
+              tree = ET.parse('coverage.xml')
+              root = tree.getroot()
+              # coverage.xml from coverage.py has line-rate attribute
+              rate = float(root.attrib.get('line-rate', '0'))
+              percent = rate * 100.0
+              print(f"Coverage: {percent:.2f}% (threshold: {threshold}%)")
+              if percent < threshold:
+                  print("ERROR: Coverage below threshold")
+                  sys.exit(1)
+              else:
+                  print("Coverage OK")
+          except FileNotFoundError:
+              print('ERROR: coverage.xml not found')
+              sys.exit(1)
+          except Exception as e:
+              print(f'ERROR: Failed to parse coverage.xml: {e}')
+              sys.exit(1)
+          PY

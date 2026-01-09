@@ -44,9 +44,23 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pytest pytest-cov
+      - name: Print environment info
+        run: |
+          python -V
+          pip --version
+          pip list
       - name: Run tests with coverage
         run: |
-          pytest --cov=src --cov-report=xml --cov-report=term -q
+          set -euo pipefail
+          pytest --version
+          pytest --cov=src --cov-report=xml --cov-report=term -q 2>&1 | tee pytest.log
+          exit ${PIPESTATUS[0]}
+      - name: Upload pytest log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-log
+          path: pytest.log
       - name: Upload coverage XML as artifact
         uses: actions/upload-artifact@v4
         with:

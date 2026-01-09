@@ -35,6 +35,13 @@ def prepare_sarima_series(df, state, crop):
     filtered = filtered.copy()
     filtered.loc[:, year_col] = filtered[year_col].astype(float).astype(int)
 
+    # ensure production column is numeric (raise on invalid values)
+    import pandas as pd
+    try:
+        filtered.loc[:, prod_col] = pd.to_numeric(filtered[prod_col], errors="raise")
+    except Exception:
+        raise Exception("Production column contains non-numeric values")
+
     ts = (
         filtered.groupby(year_col)[prod_col]
         .sum()

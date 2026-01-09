@@ -28,6 +28,33 @@ def test_prepare_sarima_series_success():
     assert ts.sum() == 20
 
 
+def test_prepare_sarima_series_duplicate_years_aggregated():
+    df = pd.DataFrame({'state_name':['A','A','A'], 'crop':['X','X','X'], 'year':[2019,2019,2020], 'production':[5,7,10]})
+    ts = prepare_sarima_series(df, 'A', 'X')
+    assert list(ts.index) == [2019,2020]
+    assert list(ts.values) == [12, 10]
+
+
+def test_prepare_sarima_series_non_numeric_production_raises():
+    df = pd.DataFrame({'state_name':['A'], 'crop':['X'], 'year':[2019], 'production':['not_a_number']})
+    with pytest.raises(Exception) as exc:
+        prepare_sarima_series(df, 'A', 'X')
+    assert 'non-numeric' in str(exc.value)
+
+
+def test_prepare_sarima_series_case_insensitive_columns():
+    df = pd.DataFrame({'State':['A','A'], 'Crop':['X','X'], 'Year':[2019,2020], 'Production':[4,6]})
+    ts = prepare_sarima_series(df, 'a', 'x')
+    assert ts.sum() == 10
+
+
+def test_prepare_sarima_series_no_data_raises():
+    df = pd.DataFrame({'state_name':['B'], 'crop':['Y'], 'year':[2019], 'production':[3]})
+    with pytest.raises(Exception) as exc:
+        prepare_sarima_series(df, 'A', 'X')
+    assert 'No data for selected State & Crop' in str(exc.value)
+
+
 def test_build_time_series_column_case_insensitive_and_prod_cols():
     # Columns with different casing and different production column names
     df1 = pd.DataFrame({'State_Name':['A','A'], 'Crop':['X','X'], 'Year':[2019,2020], 'Yield':[10,20]})
